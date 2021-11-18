@@ -134,6 +134,27 @@ class fracOrdUU(object):
         mse = LA.norm(Y - np.matmul(XUse, A.T),axis=0)**2 / self._K
         return A, np.mean(mse)
 
+    def _performLeastSq2(self, Y, X):
+        # X and Y are shape of (K,numCh)
+        # A = [a1, a2,...,an]
+        # Y = X*A.T + E
+        # ai = Sigma_X^-1 * E[Xyi.T]
+
+        XUse = np.vstack((np.zeros((1,self._numCh)), X[:-1,:]))
+        A = np.random.rand((64,64))
+        mse = LA.norm(Y - np.matmul(XUse, A.T),axis=0)**2 / self._K
+        return A, np.mean(mse)
+
+    def _performRidgeRegression(self, Y , X , lambda_0):
+        
+        t1 = np.linalg.inv(np.matmul( np.transpose(X) , X) + lambda_0 * np.eye(32))
+        
+        t2 = np.matmul(X.T , Y)
+        ans = np.matmul(t1, t2)
+        
+        return ans
+
+
     def _factor(self, A, rho):
         m, n = np.shape(A)
         if self._performSparseComputation:
@@ -258,6 +279,7 @@ class fracOrdUU(object):
             self._estimateOrder(X)
             self._updateZVec(X)
             self._AMat[0,:,:], mse = self._performLeastSq(self._zVec.T, X.T)
+            # self._AMat[0,:,:], mse =  np.eye(64), 0
 
             if np.size(self._BMat) == 0:
                 self._setHeuristicBMat(self._AMat[0,:,:])
@@ -276,7 +298,8 @@ class fracOrdUU(object):
                 for kInd in range(1,self._K):
                     yUse = self._zVec[:,kInd] - np.matmul(self._AMat[iterInd,:,:],
                             X[:,kInd-1])
-                    self._u[:,kInd] = self._getLassoSoln(yUse, self._lambdaUse)
+                    # self._u[:,kInd] = self._getLassoSoln(yUse, self._lambdaUse)
+                    self._u[:,kInd] = self._performRidgeRegression( yUse , self._BMat, 0.05   )
                     # clf = linear_model.Lasso(alpha=self._lambdaUse)
                     # clf.fit(self._BMat * np.sqrt(self._numCh), yUse* np.sqrt(self._numCh))
                     # self._u[:,kInd] = clf.coef_
@@ -285,6 +308,7 @@ class fracOrdUU(object):
                     (self._zVec - np.matmul(self._BMat, self._u)).T, X.T)
                 if self.verbose>0:
                     print('iter ind = %d, mse = %f'%(iterInd, mseIter[iterInd+1]))     
+                    # print(self._AMat[iterInd+1, : , : ])
             print('time taken = %f'%(time.time()-t0))
 
         except Exception as err:
