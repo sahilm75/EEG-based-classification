@@ -54,7 +54,7 @@ class HaarWaveletTransform(object):
 
 
 class fracOrdUU(object):
-    def __init__(self, numInp=[], numFract = 20, niter = 10, B = [], lambdaUse=0.5, verbose=0):
+    def __init__(self, numInp=[], numFract = 20, niter = 5, B = [], lambdaUse=0.5, verbose=0):
         self.verbose=verbose
         self._order = []
         self._numCh = []
@@ -147,7 +147,7 @@ class fracOrdUU(object):
 
     def _performRidgeRegression(self, Y , X , lambda_0):
         
-        t1 = np.linalg.inv(np.matmul( np.transpose(X) , X) + lambda_0 * np.eye(32))
+        t1 = np.linalg.inv(np.matmul( np.transpose(X) , X) + lambda_0 * np.eye(4))
         
         t2 = np.matmul(X.T , Y)
         ans = np.matmul(t1, t2)
@@ -259,8 +259,11 @@ class fracOrdUU(object):
                 break
         return np.squeeze(z)
 
-    def fit(self, X):
+    def fit(self, X, prior = 1):
         # X must be data in the shape of (sensors, time)
+        if(prior!=1 and prior !=2):
+            print(f'Error: \nPass 1 for Laplacian prior \n, Pass 2 for Gaussian prior')
+            return 
         X = np.array(X,dtype='float')
         self._numCh, self._K = np.shape(X)
         if np.size(self._numInp) == 0:
@@ -298,8 +301,12 @@ class fracOrdUU(object):
                 for kInd in range(1,self._K):
                     yUse = self._zVec[:,kInd] - np.matmul(self._AMat[iterInd,:,:],
                             X[:,kInd-1])
-                    # self._u[:,kInd] = self._getLassoSoln(yUse, self._lambdaUse)
-                    self._u[:,kInd] = self._performRidgeRegression( yUse , self._BMat, 0.05   )
+                    if(prior == 1):
+                        
+                        self._u[:,kInd] = self._getLassoSoln(yUse, self._lambdaUse)
+                    # print(f'yUse.shape = {yUse.shape}, BMat.shape = {self._BMat.shape}')
+                    elif(prior == 2):
+                        self._u[:,kInd] = self._performRidgeRegression( yUse , self._BMat, 0.01  )
                     # clf = linear_model.Lasso(alpha=self._lambdaUse)
                     # clf.fit(self._BMat * np.sqrt(self._numCh), yUse* np.sqrt(self._numCh))
                     # self._u[:,kInd] = clf.coef_
