@@ -28,7 +28,7 @@ You should be able to step through the functions one by one in the python notebo
 
 Since, estimation of *A, takes a long time, a previously estimated **A* has been cached in the file AdataL.npz in this directory. The lines for estimation of A have thus been commented out (Cell 20)
 
-Citations:
+#### Citations:
 
 @article{Gupta2018DealingWU,
  title={Dealing with Unknown Unknowns:Identification and 
